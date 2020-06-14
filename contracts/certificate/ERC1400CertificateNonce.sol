@@ -11,7 +11,7 @@ import "./certificateControllers/CertificateControllerNonce.sol";
  * @title ERC1400
  * @dev ERC1400 logic
  */
-contract ERC1400CertificateNonce is ERC1400, CertificateController {
+contract ERC1400CertificateNonce is ERC1400, CertificateControllerNonce {
 
   /**
    * @dev Initialize ERC1400 + initialize certificate controller.
@@ -38,7 +38,7 @@ contract ERC1400CertificateNonce is ERC1400, CertificateController {
   )
     public
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
-    CertificateController(certificateSigner, certificateActivated)
+    CertificateControllerNonce(certificateSigner, certificateActivated)
   {}
 
 
