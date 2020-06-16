@@ -6,7 +6,7 @@ pragma solidity ^0.5.0;
 
 
 // CertificateController comment...
-contract CertificateController {
+contract CertificateControllerSalt {
 
   // If set to 'true', the certificate control is activated
   bool _certificateControllerActivated;
