@@ -18,10 +18,18 @@ const ropstenProvider = process.env.SOLIDITY_COVERAGE
 
 module.exports = {
   networks: {
+    develop: {
+      host: 'localhost',
+      port: 7545,
+      network_id: 5777, // eslint-disable-line camelcase
+      gas: 0xfffffffffff,
+      gasPrice: 0x01,
+    },
     development: {
       host: 'localhost',
       port: 7545,
       network_id: '*', // eslint-disable-line camelcase
+      gas: 0xfffffffffff,
       gasPrice: 0x01,
     },
     ropsten: {
@@ -52,7 +60,7 @@ module.exports = {
   plugins: ["solidity-coverage"],
   compilers: {
     solc: {
-      version: '0.5.10',
+      version: '0.5.17',
       settings: {
         optimizer: {
           enabled: true, // Default: false
