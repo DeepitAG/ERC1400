@@ -4,6 +4,7 @@
  */
 pragma solidity ^0.5.0;
 
+import "openzeppelin-solidity/contracts/GSN/Context.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
@@ -25,7 +26,7 @@ import "./extensions/userExtensions/IERC1400TokensRecipient.sol";
  * @title ERC1400
  * @dev ERC1400 logic
  */
-contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer, MinterRole {
+contract ERC1400 is IERC20, IERC1400, Context, Ownable, ERC1820Client, ERC1820Implementer, MinterRole {
   using SafeMath for uint256;
 
   // Token
@@ -219,7 +220,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external returns (bool) {
-    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, "");
+    _transferByDefaultPartitions(_msgSender(), _msgSender(), to, value, "");
     return true;
   }
   /**
@@ -232,15 +233,15 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     return _allowed[owner][spender];
   }
   /**
-   * @dev Approve the passed address to spend the specified amount of tokens on behalf of 'msg.sender'.
+   * @dev Approve the passed address to spend the specified amount of tokens on behalf of '_msgSender()'.
    * @param spender The address which will spend the funds.
    * @param value The amount of tokens to be spent.
    * @return A boolean that indicates if the operation was successful.
    */
   function approve(address spender, uint256 value) external returns (bool) {
     require(spender != address(0), "56"); // 0x56	invalid sender
-    _allowed[msg.sender][spender] = value;
-    emit Approval(msg.sender, spender, value);
+    _allowed[_msgSender()][spender] = value;
+    emit Approval(_msgSender(), spender, value);
     return true;
   }
   /**
@@ -251,16 +252,16 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @return A boolean that indicates if the operation was successful.
    */
   function transferFrom(address from, address to, uint256 value) external returns (bool) {
-    require( _isOperator(msg.sender, from)
-      || (value <= _allowed[from][msg.sender]), "53"); // 0x53	insufficient allowance
+    require( _isOperator(_msgSender(), from)
+      || (value <= _allowed[from][_msgSender()]), "53"); // 0x53	insufficient allowance
 
-    if(_allowed[from][msg.sender] >= value) {
-      _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
+    if(_allowed[from][_msgSender()] >= value) {
+      _allowed[from][_msgSender()] = _allowed[from][_msgSender()].sub(value);
     } else {
-      _allowed[from][msg.sender] = 0;
+      _allowed[from][_msgSender()] = 0;
     }
 
-    _transferByDefaultPartitions(msg.sender, from, to, value, "");
+    _transferByDefaultPartitions(_msgSender(), from, to, value, "");
     return true;
   }
 
@@ -290,7 +291,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param documentHash Hash of the document [optional parameter].
    */
   function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external {
-    require(_isController[msg.sender]);
+    require(_isController[_msgSender()]);
     _documents[name] = Doc({
       docURI: uri,
       docHash: documentHash
@@ -323,25 +324,25 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
 
   /****************************************** Transfers *******************************************/
   /**
-   * @dev Transfer the amount of tokens from the address 'msg.sender' to the address 'to'.
+   * @dev Transfer the amount of tokens from the address '_msgSender()' to the address 'to'.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, by the token holder.
    */
   function transferWithData(address to, uint256 value, bytes calldata data) external {
-    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data);
+    _transferByDefaultPartitions(_msgSender(), _msgSender(), to, value, data);
   }
   /**
    * @dev Transfer the amount of tokens on behalf of the address 'from' to the address 'to'.
-   * @param from Token holder (or 'address(0)' to set from to 'msg.sender').
+   * @param from Token holder (or 'address(0)' to set from to '_msgSender()').
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from').
    */
   function transferFromWithData(address from, address to, uint256 value, bytes calldata data) external {
-    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+    require(_isOperator(_msgSender(), from), "58"); // 0x58	invalid operator (transfer agent)
 
-    _transferByDefaultPartitions(msg.sender, from, to, value, data);
+    _transferByDefaultPartitions(_msgSender(), from, to, value, data);
   }
   /************************************************************************************************/
 
@@ -364,7 +365,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     external
     returns (bytes32)
   {
-    return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "");
+    return _transferByPartition(partition, _msgSender(), _msgSender(), to, value, data, "");
   }
   /**
    * @dev Transfer tokens from a specific partition through an operator.
@@ -387,16 +388,16 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     external
     returns (bytes32)
   {
-    require(_isOperatorForPartition(partition, msg.sender, from)
-      || (value <= _allowedByPartition[partition][from][msg.sender]), "53"); // 0x53	insufficient allowance
+    require(_isOperatorForPartition(partition, _msgSender(), from)
+      || (value <= _allowedByPartition[partition][from][_msgSender()]), "53"); // 0x53	insufficient allowance
 
-    if(_allowedByPartition[partition][from][msg.sender] >= value) {
-      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
+    if(_allowedByPartition[partition][from][_msgSender()] >= value) {
+      _allowedByPartition[partition][from][_msgSender()] = _allowedByPartition[partition][from][_msgSender()].sub(value);
     } else {
-      _allowedByPartition[partition][from][msg.sender] = 0;
+      _allowedByPartition[partition][from][_msgSender()] = 0;
     }
 
-    return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData);
+    return _transferByPartition(partition, _msgSender(), from, to, value, data, operatorData);
   }
   /************************************************************************************************/
 
@@ -415,43 +416,43 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
 
   /************************************* Operator Management **************************************/
   /**
-   * @dev Set a third party operator address as an operator of 'msg.sender' to transfer
+   * @dev Set a third party operator address as an operator of '_msgSender()' to transfer
    * and redeem tokens on its behalf.
-   * @param operator Address to set as an operator for 'msg.sender'.
+   * @param operator Address to set as an operator for '_msgSender()'.
    */
   function authorizeOperator(address operator) external {
-    require(operator != msg.sender);
-    _authorizedOperator[operator][msg.sender] = true;
-    emit AuthorizedOperator(operator, msg.sender);
+    require(operator != _msgSender());
+    _authorizedOperator[operator][_msgSender()] = true;
+    emit AuthorizedOperator(operator, _msgSender());
   }
   /**
-   * @dev Remove the right of the operator address to be an operator for 'msg.sender'
+   * @dev Remove the right of the operator address to be an operator for '_msgSender()'
    * and to transfer and redeem tokens on its behalf.
-   * @param operator Address to rescind as an operator for 'msg.sender'.
+   * @param operator Address to rescind as an operator for '_msgSender()'.
    */
   function revokeOperator(address operator) external {
-    require(operator != msg.sender);
-    _authorizedOperator[operator][msg.sender] = false;
-    emit RevokedOperator(operator, msg.sender);
+    require(operator != _msgSender());
+    _authorizedOperator[operator][_msgSender()] = false;
+    emit RevokedOperator(operator, _msgSender());
   }
   /**
-   * @dev Set 'operator' as an operator for 'msg.sender' for a given partition.
+   * @dev Set 'operator' as an operator for '_msgSender()' for a given partition.
    * @param partition Name of the partition.
-   * @param operator Address to set as an operator for 'msg.sender'.
+   * @param operator Address to set as an operator for '_msgSender()'.
    */
   function authorizeOperatorByPartition(bytes32 partition, address operator) external {
-    _authorizedOperatorByPartition[msg.sender][partition][operator] = true;
-    emit AuthorizedOperatorByPartition(partition, operator, msg.sender);
+    _authorizedOperatorByPartition[_msgSender()][partition][operator] = true;
+    emit AuthorizedOperatorByPartition(partition, operator, _msgSender());
   }
   /**
    * @dev Remove the right of the operator address to be an operator on a given
-   * partition for 'msg.sender' and to transfer and redeem tokens on its behalf.
+   * partition for '_msgSender()' and to transfer and redeem tokens on its behalf.
    * @param partition Name of the partition.
-   * @param operator Address to rescind as an operator on given partition for 'msg.sender'.
+   * @param operator Address to rescind as an operator on given partition for '_msgSender()'.
    */
   function revokeOperatorByPartition(bytes32 partition, address operator) external {
-    _authorizedOperatorByPartition[msg.sender][partition][operator] = false;
-    emit RevokedOperatorByPartition(partition, operator, msg.sender);
+    _authorizedOperatorByPartition[_msgSender()][partition][operator] = false;
+    emit RevokedOperatorByPartition(partition, operator, _msgSender());
   }
   /************************************************************************************************/
 
@@ -501,7 +502,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   {
     require(_defaultPartitions.length != 0, "55"); // 0x55	funds locked (lockup period)
 
-    _issueByPartition(_defaultPartitions[0], msg.sender, tokenHolder, value, data);
+    _issueByPartition(_defaultPartitions[0], _msgSender(), tokenHolder, value, data);
   }
   /**
    * @dev Issue tokens from a specific partition.
@@ -515,34 +516,34 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     onlyMinter
     isIssuableToken
   {
-    _issueByPartition(partition, msg.sender, tokenHolder, value, data);
+    _issueByPartition(partition, _msgSender(), tokenHolder, value, data);
   }
   /************************************************************************************************/
   
 
   /*************************************** Token Redemption ***************************************/
   /**
-   * @dev Redeem the amount of tokens from the address 'msg.sender'.
+   * @dev Redeem the amount of tokens from the address '_msgSender()'.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption, by the token holder.
    */
   function redeem(uint256 value, bytes calldata data)
     external
   {
-    _redeemByDefaultPartitions(msg.sender, msg.sender, value, data);
+    _redeemByDefaultPartitions(_msgSender(), _msgSender(), value, data);
   }
   /**
    * @dev Redeem the amount of tokens on behalf of the address from.
-   * @param from Token holder whose tokens will be redeemed (or address(0) to set from to msg.sender).
+   * @param from Token holder whose tokens will be redeemed (or address(0) to set from to _msgSender()).
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
    */
   function redeemFrom(address from, uint256 value, bytes calldata data)
     external
   {
-    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+    require(_isOperator(_msgSender(), from), "58"); // 0x58	invalid operator (transfer agent)
 
-    _redeemByDefaultPartitions(msg.sender, from, value, data);
+    _redeemByDefaultPartitions(_msgSender(), from, value, data);
   }
   /**
    * @dev Redeem tokens of a specific partition.
@@ -553,7 +554,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   function redeemByPartition(bytes32 partition, uint256 value, bytes calldata data)
     external
   {
-    _redeemByPartition(partition, msg.sender, msg.sender, value, data, "");
+    _redeemByPartition(partition, _msgSender(), _msgSender(), value, data, "");
   }
   /**
    * @dev Redeem tokens of a specific partition.
@@ -565,9 +566,9 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata operatorData)
     external
   {
-    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "58"); // 0x58	invalid operator (transfer agent)
+    require(_isOperatorForPartition(partition, _msgSender(), tokenHolder), "58"); // 0x58	invalid operator (transfer agent)
 
-    _redeemByPartition(partition, msg.sender, tokenHolder, value, "", operatorData);
+    _redeemByPartition(partition, _msgSender(), tokenHolder, value, "", operatorData);
   }
   /************************************************************************************************/
 
@@ -701,7 +702,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     return _allowedByPartition[partition][owner][spender];
   }
   /**
-   * @dev Approve the passed address to spend the specified amount of tokens on behalf of 'msg.sender'.
+   * @dev Approve the passed address to spend the specified amount of tokens on behalf of '_msgSender()'.
    * @param partition Name of the partition.
    * @param spender The address which will spend the funds.
    * @param value The amount of tokens to be spent.
@@ -709,8 +710,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function approveByPartition(bytes32 partition, address spender, uint256 value) external returns (bool) {
     require(spender != address(0), "56"); // 0x56	invalid sender
-    _allowedByPartition[partition][msg.sender][spender] = value;
-    emit ApprovalByPartition(partition, msg.sender, spender, value);
+    _allowedByPartition[partition][_msgSender()][spender] = value;
+    emit ApprovalByPartition(partition, _msgSender(), spender, value);
     return true;
   }
   /************************************************************************************************/

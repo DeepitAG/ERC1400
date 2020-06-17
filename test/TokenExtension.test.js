@@ -1049,7 +1049,7 @@ contract("ERC1400 with validator hook", function ([
       );
     });
 
-    describe("when token has a withlist", function () {
+    describe("when token has a whitelist", function () {
       beforeEach(async function () {
         this.validatorContract = await ERC1400TokensValidator.new(true, false, {
           from: owner,
@@ -1275,7 +1275,7 @@ contract("ERC1400 with validator hook", function ([
       );
     });
 
-    describe("when token has a withelist", function () {
+    describe("when token has a whitelist", function () {
       beforeEach(async function () {
         this.validatorContract = await ERC1400TokensValidator.new(true, false, {
           from: owner,
@@ -1499,7 +1499,7 @@ contract("ERC1400 with validator hook", function ([
         });
       });
     });
-    describe("when token has no withelist", function () {});
+    describe("when token has no whitelist", function () {});
   });
 
   // PAUSABLE EXTENSION

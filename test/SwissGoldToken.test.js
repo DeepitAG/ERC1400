@@ -2,7 +2,7 @@ const { shouldFail } = require("openzeppelin-test-helpers");
 
 const { soliditySha3 } = require("web3-utils");
 
-const ERC1400 = artifacts.require("ERC1400");
+const SwissGoldToken = artifacts.require("SwissGoldToken");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const FakeERC1400 = artifacts.require("FakeERC1400Mock");
@@ -206,12 +206,13 @@ const issueOnMultiplePartitions = async (
   }
 };
 
-contract("ERC1400", function ([
+contract("SwissGoldToken", function ([
   owner,
   operator,
   controller,
   controller_alternative1,
   controller_alternative2,
+  trusted_signer,
   tokenHolder,
   recipient,
   unknown,
@@ -225,7 +226,7 @@ contract("ERC1400", function ([
   describe("contract creation", function () {
     it("fails deploying the contract if granularity is lower than 1", async function () {
       await shouldFail.reverting(
-        ERC1400.new("ERC1400Token", "DAU", 0, [controller], partitions)
+        SwissGoldToken.new("SwissGoldToken", "SGT", 0, [controller], partitions, trusted_signer)
       );
     });
   });
@@ -234,12 +235,13 @@ contract("ERC1400", function ([
 
   describe("canImplementInterfaceForAddress", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when interface hash is correct", function () {
@@ -271,12 +273,13 @@ contract("ERC1400", function ([
 
   describe("transfer", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await this.token.issueByPartition(
         partition1,
@@ -347,12 +350,13 @@ contract("ERC1400", function ([
     });
     describe("when the amount is not a multiple of the granularity", function () {
       it("reverts", async function () {
-        this.token = await ERC1400.new(
-          "ERC1400Token",
-          "DAU",
+        this.token = await SwissGoldToken.new(
+          "SwissGoldToken",
+          "SGT",
           2,
           [],
-          partitions
+          partitions,
+          trusted_signer
         );
         await this.token.issueByPartition(
           partition1,
@@ -373,12 +377,13 @@ contract("ERC1400", function ([
   describe("transferFrom", function () {
     const approvedAmount = 10000;
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await this.token.issueByPartition(
         partition1,
@@ -470,12 +475,13 @@ contract("ERC1400", function ([
         });
         describe("when the amount is not a multiple of the granularity", function () {
           it("reverts", async function () {
-            this.token = await ERC1400.new(
-              "ERC1400Token",
-              "DAU",
+            this.token = await SwissGoldToken.new(
+              "SwissGoldToken",
+              "SGT",
               2,
               [],
-              partitions
+              partitions,
+              trusted_signer
             );
             await this.token.issueByPartition(
               partition1,
@@ -529,12 +535,13 @@ contract("ERC1400", function ([
   describe("approve", function () {
     const amount = 100;
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when sender approves an operator", function () {
@@ -575,12 +582,13 @@ contract("ERC1400", function ([
       "0x1c81c608a616183cc4a38c09ecc944eb77eaff465dd87aae0290177f2b70b6f8"; // SHA-256 of documentURI + '0x'
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
 
@@ -649,12 +657,13 @@ contract("ERC1400", function ([
 
   describe("partitionsOf", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when tokenHolder owes no tokens", function () {
@@ -700,12 +709,13 @@ contract("ERC1400", function ([
   describe("transferWithData", function () {
     describe("when defaultPartitions have been defined", function () {
       beforeEach(async function () {
-        this.token = await ERC1400.new(
-          "ERC1400Token",
-          "DAU",
+        this.token = await SwissGoldToken.new(
+          "SwissGoldToken",
+          "SGT",
           1,
           [controller],
-          partitions
+          partitions,
+          trusted_signer
         );
         await issueOnMultiplePartitions(
           this.token,
@@ -860,12 +870,13 @@ contract("ERC1400", function ([
       });
       describe("when the amount is not a multiple of the granularity", function () {
         it("reverts", async function () {
-          this.token = await ERC1400.new(
-            "ERC1400Token",
-            "DAU",
+          this.token = await SwissGoldToken.new(
+            "SwissGoldToken",
+            "SGT",
             2,
-            [controller],
-            partitions
+            [],
+            partitions,
+            trusted_signer
           );
           await issueOnMultiplePartitions(
             this.token,
@@ -893,12 +904,13 @@ contract("ERC1400", function ([
     });
     describe("when defaultPartitions have not been defined", function () {
       it("reverts", async function () {
-        this.token = await ERC1400.new(
-          "ERC1400Token",
-          "DAU",
+        this.token = await SwissGoldToken.new(
+          "SwissGoldToken",
+          "SGT",
           1,
           [controller],
-          []
+          [],
+          trusted_signer
         );
         await issueOnMultiplePartitions(
           this.token,
@@ -923,12 +935,13 @@ contract("ERC1400", function ([
 
   describe("transferFromWithData", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await issueOnMultiplePartitions(
         this.token,
@@ -1040,8 +1053,8 @@ contract("ERC1400", function ([
               });
               it("reverts (mock contract - for 100% test coverage)", async function () {
                 this.token = await FakeERC1400.new(
-                  "ERC1400Token",
-                  "DAU",
+                  "SwissGoldToken",
+                  "SGT",
                   1,
                   [controller],
                   partitions
@@ -1106,12 +1119,13 @@ contract("ERC1400", function ([
       });
       describe("when the amount is not a multiple of the granularity", function () {
         it("reverts", async function () {
-          this.token = await ERC1400.new(
-            "ERC1400Token",
-            "DAU",
+          this.token = await SwissGoldToken.new(
+            "SwissGoldToken",
+            "SGT",
             2,
             [controller],
-            partitions
+            partitions,
+            trusted_signer
           );
           await issueOnMultiplePartitions(
             this.token,
@@ -1165,12 +1179,13 @@ contract("ERC1400", function ([
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await this.token.issueByPartition(
         partition1,
@@ -1278,12 +1293,13 @@ contract("ERC1400", function ([
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await this.token.issueByPartition(
         partition1,
@@ -1711,12 +1727,13 @@ contract("ERC1400", function ([
 
   describe("authorizeOperator", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when sender authorizes an operator", function () {
@@ -1749,12 +1766,13 @@ contract("ERC1400", function ([
 
   describe("revokeOperator", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when sender revokes an operator", function () {
@@ -1791,12 +1809,13 @@ contract("ERC1400", function ([
 
   describe("authorizeOperatorByPartition", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     it("authorizes the operator", async function () {
@@ -1837,12 +1856,13 @@ contract("ERC1400", function ([
 
   describe("revokeOperatorByPartition", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when operator is not controller", function () {
@@ -1891,12 +1911,13 @@ contract("ERC1400", function ([
 
   describe("isOperator", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     it("when operator is tokenHolder", async function () {
@@ -1924,12 +1945,13 @@ contract("ERC1400", function ([
 
   describe("isOperatorForPartition", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     it("when operator is tokenHolder", async function () {
@@ -1993,12 +2015,13 @@ contract("ERC1400", function ([
 
   describe("issue", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
 
@@ -2091,12 +2114,13 @@ contract("ERC1400", function ([
           });
           describe("when the amount is not a multiple of the granularity", function () {
             it("issues the requested amount", async function () {
-              this.token = await ERC1400.new(
-                "ERC1400Token",
-                "DAU",
+              this.token = await SwissGoldToken.new(
+                "SwissGoldToken",
+                "SGT",
                 2,
                 [controller],
-                partitions
+                partitions,
+                trusted_signer
               );
               await shouldFail.reverting(
                 this.token.issue(tokenHolder, 1, ZERO_BYTES32, { from: owner })
@@ -2106,12 +2130,13 @@ contract("ERC1400", function ([
         });
         describe("when default partitions have not been defined", function () {
           it("reverts", async function () {
-            this.token = await ERC1400.new(
-              "ERC1400Token",
-              "DAU",
+            this.token = await SwissGoldToken.new(
+              "SwissGoldToken",
+              "SGT",
               1,
               [controller],
-              []
+              [],
+              trusted_signer
             );
             await shouldFail.reverting(
               this.token.issue(tokenHolder, issuanceAmount, ZERO_BYTES32, {
@@ -2149,12 +2174,13 @@ contract("ERC1400", function ([
 
   describe("issueByPartition", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
 
@@ -2272,12 +2298,13 @@ contract("ERC1400", function ([
 
   describe("redeem", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await issueOnMultiplePartitions(
         this.token,
@@ -2366,12 +2393,13 @@ contract("ERC1400", function ([
       });
       describe("when the amount is not a multiple of the granularity", function () {
         it("reverts", async function () {
-          this.token = await ERC1400.new(
-            "ERC1400Token",
-            "DAU",
+          this.token = await SwissGoldToken.new(
+            "SwissGoldToken",
+            "SGT",
             2,
             [controller],
-            partitions
+            partitions,
+            trusted_signer
           );
           await issueOnMultiplePartitions(
             this.token,
@@ -2411,12 +2439,13 @@ contract("ERC1400", function ([
 
   describe("redeemFrom", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await issueOnMultiplePartitions(
         this.token,
@@ -2521,8 +2550,8 @@ contract("ERC1400", function ([
               });
               it("reverts (mock contract - for 100% test coverage)", async function () {
                 this.token = await FakeERC1400.new(
-                  "ERC1400Token",
-                  "DAU",
+                  "SwissGoldToken",
+                  "SGT",
                   1,
                   [controller],
                   partitions
@@ -2551,12 +2580,13 @@ contract("ERC1400", function ([
           });
           describe("when the amount is not a multiple of the granularity", function () {
             it("reverts", async function () {
-              this.token = await ERC1400.new(
-                "ERC1400Token",
-                "DAU",
+              this.token = await SwissGoldToken.new(
+                "SwissGoldToken",
+                "SGT",
                 2,
                 [controller],
-                partitions
+                partitions,
+                trusted_signer
               );
               await issueOnMultiplePartitions(
                 this.token,
@@ -2598,8 +2628,8 @@ contract("ERC1400", function ([
           });
           it("reverts (mock contract - for 100% test coverage)", async function () {
             this.token = await FakeERC1400.new(
-              "ERC1400Token",
-              "DAU",
+              "SwissGoldToken",
+              "SGT",
               1,
               [controller],
               partitions
@@ -2665,12 +2695,13 @@ contract("ERC1400", function ([
     const redeemAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await this.token.issueByPartition(
         partition1,
@@ -2752,12 +2783,13 @@ contract("ERC1400", function ([
     const redeemAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await this.token.issueByPartition(
         partition1,
@@ -2878,12 +2910,13 @@ contract("ERC1400", function ([
 
   describe("parameters", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
 
@@ -2891,7 +2924,7 @@ contract("ERC1400", function ([
       it("returns the name of the token", async function () {
         const name = await this.token.name();
 
-        assert.equal(name, "ERC1400Token");
+        assert.equal(name, "SwissGoldToken");
       });
     });
 
@@ -2899,7 +2932,7 @@ contract("ERC1400", function ([
       it("returns the symbol of the token", async function () {
         const symbol = await this.token.symbol();
 
-        assert.equal(symbol, "DAU");
+        assert.equal(symbol, "SGT");
       });
     });
 
@@ -3028,12 +3061,13 @@ contract("ERC1400", function ([
 
   describe("setControllers", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when the caller is the contract owner", function () {
@@ -3091,12 +3125,13 @@ contract("ERC1400", function ([
 
   describe("setPartitionControllers", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when the caller is the contract owner", function () {
@@ -3292,12 +3327,13 @@ contract("ERC1400", function ([
   // SET/GET TOKEN DEFAULT PARTITIONS
   describe("defaultPartitions", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       defaultPartitions = await this.token.getDefaultPartitions();
       assert.equal(defaultPartitions.length, 3);
@@ -3331,12 +3367,13 @@ contract("ERC1400", function ([
   describe("approveByPartition", function () {
     const amount = 100;
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
     });
     describe("when sender approves an operator for a given partition", function () {
@@ -3395,19 +3432,21 @@ contract("ERC1400", function ([
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU20",
+      this.token = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT20",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
-      this.migratedToken = await ERC1400.new(
-        "ERC1400Token",
-        "DAU20",
+      this.migratedToken = await SwissGoldToken.new(
+        "SwissGoldToken",
+        "SGT20",
         1,
         [controller],
-        partitions
+        partitions,
+        trusted_signer
       );
       await this.token.issueByPartition(
         partition1,
