@@ -79,6 +79,7 @@
     "ethereumjs-wallet": "^0.6.3",
     "openzeppelin-solidity": "2.5.1",
     "truffle": "5.0.44",
+    "truffle-flattener": "^1.4.4",
     "truffle-hdwallet-provider": "1.0.1"
   },
   "husky": {
