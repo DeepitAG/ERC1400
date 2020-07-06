@@ -1,11 +1,15 @@
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { constants, expectEvent, shouldFail } = require("openzeppelin-test-helpers");
+const gsn = require("@openzeppelin/gsn-helpers");
+const { GSNDevProvider, utils: { fixSignature } } = require("@openzeppelin/gsn-provider");
 
-const { soliditySha3 } = require("web3-utils");
+const Web3 = require("web3");
+const { soliditySha3, toBN } = require("web3-utils");
 
 const SwissGoldToken = artifacts.require("SwissGoldToken");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const FakeERC1400 = artifacts.require("FakeERC1400Mock");
+const SwissGoldTokenGSNRecipientSignatureMock = artifacts.require("SwissGoldTokenGSNRecipientSignatureMock");
 
 const ERC1820_ACCEPT_MAGIC = "ERC1820_ACCEPT_MAGIC";
 
@@ -3602,6 +3606,116 @@ contract("SwissGoldToken", function ([
             from: unknown,
           })
         );
+      });
+    });
+  });
+
+  describe('GSN', function () {
+    let relayerProcess, web3;
+    before(async function () {
+      const gsnProvider = new GSNDevProvider("http://localhost:7545", {
+        txfee: 70,
+        useGSN: false,
+        fixedGasLimit: 100000,
+        debug: false
+      });
+      web3 = new Web3(gsnProvider);
+      SwissGoldTokenGSNRecipientSignatureMock.setProvider(web3.currentProvider);
+
+      await gsn.deployRelayHub(web3);
+
+      const consoleError = console.error; console.error = function () {};
+      relayerProcess = await gsn.runRelayer({ quiet: true });
+      console.error = consoleError;
+    });
+    after(function () {
+      relayerProcess && relayerProcess.kill();
+    });
+
+    beforeEach(async function () {
+      this.recipient = await SwissGoldTokenGSNRecipientSignatureMock.new(
+        "SwissGoldToken",
+        "SGT",
+        1,
+        [controller],
+        partitions,
+        trusted_signer
+      );
+    });
+
+    context('when called directly', function () {
+      it('mock function can be called', async function () {
+        const { logs } = await this.recipient.mockFunction();
+        expectEvent.inLogs(logs, 'MockFunctionCalled');
+      });
+    });
+    context('when constructor is called with a zero address', function () {
+      it('fails when constructor called with a zero address', async function () {
+        await shouldFail.reverting.withMessage(
+          SwissGoldTokenGSNRecipientSignatureMock.new(
+            "SwissGoldToken",
+            "SGT",
+            1,
+            [controller],
+            partitions,
+            ZERO_ADDRESS
+          ),
+          'GSNRecipientSignature: trusted signer is the zero address'
+        );
+      });
+    });
+    context('when relay-called', function () {
+      beforeEach(async function () {
+        await gsn.fundRecipient(web3, { recipient: this.recipient.address });
+      });
+  
+      it('rejects unsigned relay requests', async function () {
+        await gsn.expectError(this.recipient.mockFunction({ value: 0, useGSN: true }));
+      });
+  
+      it('rejects relay requests where some parameters are signed', async function () {
+        const approveFunction = async (data) =>
+          fixSignature(
+            await web3.eth.sign(
+              web3.utils.soliditySha3(
+                // the nonce is not signed
+                // eslint-disable-next-line max-len
+                data.relayerAddress, data.from, data.encodedFunctionCall, toBN(data.txFee), toBN(data.gasPrice), toBN(data.gas)
+              ), signer
+            )
+          );
+  
+        await gsn.expectError(this.recipient.mockFunction({ value: 0, useGSN: true, approveFunction }));
+      });
+  
+      it('accepts relay requests where all parameters are signed', async function () {
+        const approveFunction = async (data) =>
+          fixSignature(
+            await web3.eth.sign(
+              web3.utils.soliditySha3(
+                // eslint-disable-next-line max-len
+                data.relayerAddress, data.from, data.encodedFunctionCall, toBN(data.txFee), toBN(data.gasPrice), toBN(data.gas), toBN(data.nonce), data.relayHubAddress, data.to
+              ), trusted_signer
+            )
+          );
+  
+        const { tx } = await this.recipient.mockFunction({ value: 0, useGSN: true, approveFunction });
+  
+        await expectEvent.inTransaction(tx, SwissGoldTokenGSNRecipientSignatureMock, 'MockFunctionCalled');
+      });
+  
+      it('rejects relay requests where all parameters are signed by an invalid signer', async function () {
+        const approveFunction = async (data) =>
+          fixSignature(
+            await web3.eth.sign(
+              web3.utils.soliditySha3(
+                // eslint-disable-next-line max-len
+                data.relayerAddress, data.from, data.encodedFunctionCall, toBN(data.txFee), toBN(data.gasPrice), toBN(data.gas), toBN(data.nonce), data.relayHubAddress, data.to
+              ), other
+            )
+          );
+  
+        await gsn.expectError(this.recipient.mockFunction({ value: 0, useGSN: true, approveFunction }));
       });
     });
   });

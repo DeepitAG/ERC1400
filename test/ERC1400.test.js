@@ -1,4 +1,4 @@
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { BN, expectEvent, shouldFail } = require("openzeppelin-test-helpers");
 
 const { soliditySha3 } = require("web3-utils");
 
@@ -6,6 +6,8 @@ const ERC1400 = artifacts.require("ERC1400");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const FakeERC1400 = artifacts.require("FakeERC1400Mock");
+const ERC1400ContextMock = artifacts.require("ERC1400ContextMock");
+const ERC1400ContextMockCaller = artifacts.require("ERC1400ContextMockCaller");
 
 const ERC1820_ACCEPT_MAGIC = "ERC1820_ACCEPT_MAGIC";
 
@@ -3563,6 +3565,51 @@ contract("ERC1400", function ([
             from: unknown,
           })
         );
+      });
+    });
+  });
+
+  describe('GSN', function () {
+    beforeEach(async function () {
+      this.context = await ERC1400ContextMock.new(
+        "ERC1400Token",
+        "DAU",
+        1,
+        [controller],
+        partitions
+      );
+      this.caller = await ERC1400ContextMockCaller.new();
+    });
+
+    describe('msgSender', function () {
+      it('returns the transaction sender when called from an EOA', async function () {
+        const { logs } = await this.context.msgSender({ from: unknown });
+        expectEvent.inLogs(logs, 'Sender', { sender: unknown });
+      });
+
+      it('returns the transaction sender when from another contract', async function () {
+        const { tx } = await this.caller.callSender(this.context.address, { from: unknown });
+        await expectEvent.inTransaction(tx, ERC1400ContextMock, 'Sender', { sender: this.caller.address });
+      });
+    });
+    describe('msgData', function () {
+      const integerValue = new BN('42');
+      const stringValue = 'ERC1400';
+  
+      let callData;
+  
+      beforeEach(async function () {
+        callData = this.context.contract.methods.msgData(integerValue.toString(), stringValue).encodeABI();
+      });
+  
+      it('returns the transaction data when called from an EOA', async function () {
+        const { logs } = await this.context.msgData(integerValue, stringValue);
+        expectEvent.inLogs(logs, 'Data', { data: callData, integerValue, stringValue });
+      });
+  
+      it('returns the transaction sender when from another contract', async function () {
+        const { tx } = await this.caller.callData(this.context.address, integerValue, stringValue);
+        await expectEvent.inTransaction(tx, ERC1400ContextMock, 'Data', { data: callData, integerValue, stringValue });
       });
     });
   });
